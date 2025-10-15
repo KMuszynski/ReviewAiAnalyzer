@@ -51,15 +51,23 @@ export default function UrlProcessor({
         analysisData: {
           title: "iPhone 15 Pro Review Analysis",
           stats: [
-            { label: "Overall Sentiment", value: "Positive", trend: "up" },
-            { label: "Average Rating", value: "4.3/5", trend: "up" },
+            {
+              label: "Overall Sentiment",
+              value: "Positive",
+              trend: "up" as const,
+            },
+            { label: "Average Rating", value: "4.3/5", trend: "up" as const },
             {
               label: "Key Positives",
               value: "Camera, Performance",
-              trend: "up",
+              trend: "up" as const,
             },
-            { label: "Key Negatives", value: "Price, Battery", trend: "down" },
-            { label: "Viewer Engagement", value: "High", trend: "up" },
+            {
+              label: "Key Negatives",
+              value: "Price, Battery",
+              trend: "down" as const,
+            },
+            { label: "Viewer Engagement", value: "High", trend: "up" as const },
           ],
         },
       };
@@ -72,11 +80,23 @@ export default function UrlProcessor({
         analysisData: {
           title: "Amazon Product Review Analysis",
           stats: [
-            { label: "Purchase Intent", value: "78%", trend: "up" },
-            { label: "Product Satisfaction", value: "4.1/5", trend: "up" },
-            { label: "Price Perception", value: "Fair", trend: "neutral" },
-            { label: "Quality Rating", value: "4.2/5", trend: "up" },
-            { label: "Recommendation Rate", value: "85%", trend: "up" },
+            { label: "Purchase Intent", value: "78%", trend: "up" as const },
+            {
+              label: "Product Satisfaction",
+              value: "4.1/5",
+              trend: "up" as const,
+            },
+            {
+              label: "Price Perception",
+              value: "Fair",
+              trend: "neutral" as const,
+            },
+            { label: "Quality Rating", value: "4.2/5", trend: "up" as const },
+            {
+              label: "Recommendation Rate",
+              value: "85%",
+              trend: "up" as const,
+            },
           ],
         },
       };
@@ -89,11 +109,19 @@ export default function UrlProcessor({
         analysisData: {
           title: "Location Review Analysis",
           stats: [
-            { label: "Location Rating", value: "4.5/5", trend: "up" },
-            { label: "Service Quality", value: "Excellent", trend: "up" },
-            { label: "Atmosphere", value: "Great", trend: "up" },
-            { label: "Value for Money", value: "Good", trend: "neutral" },
-            { label: "Would Return", value: "92%", trend: "up" },
+            { label: "Location Rating", value: "4.5/5", trend: "up" as const },
+            {
+              label: "Service Quality",
+              value: "Excellent",
+              trend: "up" as const,
+            },
+            { label: "Atmosphere", value: "Great", trend: "up" as const },
+            {
+              label: "Value for Money",
+              value: "Good",
+              trend: "neutral" as const,
+            },
+            { label: "Would Return", value: "92%", trend: "up" as const },
           ],
         },
       };
@@ -106,11 +134,15 @@ export default function UrlProcessor({
         analysisData: {
           title: "General Video Analysis",
           stats: [
-            { label: "Content Quality", value: "Good", trend: "up" },
-            { label: "Engagement Level", value: "Medium", trend: "neutral" },
-            { label: "Clarity Score", value: "7.5/10", trend: "up" },
-            { label: "Relevance", value: "High", trend: "up" },
-            { label: "Overall Score", value: "8.2/10", trend: "up" },
+            { label: "Content Quality", value: "Good", trend: "up" as const },
+            {
+              label: "Engagement Level",
+              value: "Medium",
+              trend: "neutral" as const,
+            },
+            { label: "Clarity Score", value: "7.5/10", trend: "up" as const },
+            { label: "Relevance", value: "High", trend: "up" as const },
+            { label: "Overall Score", value: "8.2/10", trend: "up" as const },
           ],
         },
       };
