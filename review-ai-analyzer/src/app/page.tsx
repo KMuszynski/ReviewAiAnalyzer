@@ -1,12 +1,9 @@
-import Image from "next/image";
 import { createClient } from "@/supabase/server";
 import LogoutButton from "@/components/LogoutButton";
-import UrlProcessor from "@/components/UrlProcessor";
-import ReviewTable from "@/components/ReviewTable";
 import HomeClient from "@/components/HomeClient";
 
 export default async function Home() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
