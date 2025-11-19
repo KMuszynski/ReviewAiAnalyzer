@@ -5,6 +5,7 @@ import time
 
 transcription_bp = Blueprint("transcription", __name__)
 
+# Initialize service
 transcription_service = None
 
 
@@ -85,21 +86,10 @@ def transcription_page():
 <!DOCTYPE html>
 <html>
 <head>
-    <title>YouTube Audio Transcription</title>
+    <title>Audio Transcription</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 900px;
-            margin: 50px auto;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         h1 { color: #333; }
         .back-link { display: inline-block; margin-bottom: 20px; color: #0078D7; text-decoration: none; }
         .back-link:hover { text-decoration: underline; }
@@ -108,11 +98,12 @@ def transcription_page():
         .button:hover { background: #005a9e; }
         #transcript { background: #f9f9f9; padding: 20px; border-radius: 5px; margin-top: 20px; white-space: pre-wrap; line-height: 1.6; }
         .loading { color: #666; font-style: italic; }
+        .analyze-section { margin-top: 30px; padding: 20px; background: #e8f4fd; border-radius: 5px; border-left: 4px solid #0078D7; display: none; }
     </style>
 </head>
 <body>
 <div class="container">
-    <a href="/" class="back-link">← Back to Home</a>
+    <a href="/" class="back-link">← Back to homepage</a>
     <h1>🎧 YouTube Audio Transcription</h1>
 
     <div class="audio-player">
@@ -127,21 +118,16 @@ def transcription_page():
     <button onclick="checkStatus()" class="button" style="background: #5c9e5c;">🔍 Check Status</button>
 
     <div id="transcript"></div>
+    <div id="analyzeSection" class="analyze-section">
+        <h3>📊 Transcription Sentiment Analysis</h3>
+        <p>Transcription ready! You can now analyze sentiment.</p>
+        <button onclick="analyzeSentiment()" class="button" style="background: #9c27b0;">🎯 Analyze Sentiment</button>
+    </div>
 </div>
 
 <script>
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function escapeHtml(unsafe) {
-    return unsafe
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-}
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+function escapeHtml(unsafe) { return unsafe.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;"); }
 
 async function checkStatus() {
     const transcript = document.getElementById('transcript');
@@ -149,9 +135,9 @@ async function checkStatus() {
         const resp = await fetch('/api/transcription/status');
         const data = await resp.json();
         transcript.innerHTML = '<h3>Status:</h3>' +
-            '<p>Transcription done: ' + (data.transcription_done ? '✅' : '❌') + '</p>' +
-            '<p>Transcript available: ' + (data.transcript_available ? '✅' : '❌') + '</p>' +
-            '<p>Time: ' + new Date(data.timestamp * 1000).toLocaleTimeString() + '</p>';
+            '<p>Transcription complete: ' + (data.transcription_done ? '✅' : '❌') + '</p>' +
+            '<p>File available: ' + (data.transcript_available ? '✅' : '❌') + '</p>' +
+            '<p>Timestamp: ' + new Date(data.timestamp * 1000).toLocaleTimeString() + '</p>';
     } catch (err) {
         transcript.innerHTML = '<p style="color:red;">Error: ' + err.message + '</p>';
     }
@@ -161,7 +147,7 @@ async function loadTranscription() {
     const transcript = document.getElementById('transcript');
     transcript.innerHTML = '<p class="loading">Loading transcription…</p>';
 
-    const maxWait = 120000; // 2 min
+    const maxWait = 1200000; // 2 min
     const startTime = Date.now();
     let attempt = 0;
     let delay = 1000;
@@ -174,6 +160,7 @@ async function loadTranscription() {
                 const data = await resp.json();
                 transcript.innerHTML = '<h3>Transcription:</h3><p>' + escapeHtml(data.text) + '</p>' +
                     '<p><em>Length: ' + data.length + ' characters</em></p>';
+                document.getElementById('analyzeSection').style.display = 'block';
                 return;
             } else if (resp.status === 202) {
                 const body = await resp.json().catch(() => ({}));
@@ -192,7 +179,23 @@ async function loadTranscription() {
         delay = Math.min(10000, Math.round(delay * 1.8));
     }
 
-    transcript.innerHTML = '<p style="color:orange;">⚠️ Timeout: transcription still not ready. Please try again later.</p>';
+    transcript.innerHTML = '<p style="color:orange;">⚠️ Timeout: transcription still not ready. Try again later.</p>';
+}
+
+async function analyzeSentiment() {
+    try {
+        const textResp = await fetch('/api/transcription/text');
+        const textData = await textResp.json();
+        const analyzeResp = await fetch('/api/sentiment/analyze-transcription', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        const analyzeData = await analyzeResp.json();
+        sessionStorage.setItem('sentimentResults', JSON.stringify(analyzeData));
+        window.location.href = '/api/sentiment/demo';
+    } catch (err) {
+        alert('Error during analysis: ' + err.message);
+    }
 }
 </script>
 </body>

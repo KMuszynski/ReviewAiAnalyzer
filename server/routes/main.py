@@ -100,22 +100,27 @@ def index():
                     /api/transcription/text - Get transcription text
                 </div>
             </div>
-            
             <div class="section">
-                <h2>🔧 Health Check</h2>
-                <a href="/health" class="link-button">Check status</a>
+                <h2>📊 Analiza Sentymentu</h2>
+                <p>Automatyczna analiza sentymentu dla cech urządzeń (kamera, bateria, ekran, etc.)</p>
+                <a href="/api/sentiment/demo" class="link-button">Demo analizy</a>
+                
+                <h3>API Endpoints:</h3>
+                <div class="api-endpoint">
+                    <span class="method post">POST</span>
+                    /api/sentiment/analyze - Analizuj sentiment tekstu
+                </div>
+                <div class="api-endpoint">
+                    <span class="method get">GET</span>
+                    /api/sentiment/features - Dostępne cechy do analizy
+                </div>
+                <div class="api-endpoint">
+                    <span class="method post">POST</span>
+                    /api/sentiment/analyze-transcription - Analizuj transkrypcję
+                </div>
             </div>
         </div>
     </body>
     </html>
     """
     return render_template_string(html)
-
-
-@main_bp.route("/health")
-def health_check():
-    """Health check endpoint."""
-    return {
-        "status": "healthy",
-        "services": {"transcription": "available"},
-    }, 200

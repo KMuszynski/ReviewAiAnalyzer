@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from routes.transcription import transcription_bp
+from routes.sentiment import sentiment_bp
 from routes.main import main_bp
 
 app = Flask(__name__)
@@ -18,6 +19,7 @@ os.makedirs(app.config["STATIC_DIR"], exist_ok=True)
 
 app.register_blueprint(main_bp)
 app.register_blueprint(transcription_bp, url_prefix="/api/transcription")
+app.register_blueprint(sentiment_bp, url_prefix="/api/sentiment")
 
 
 @app.errorhandler(404)

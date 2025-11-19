@@ -11,12 +11,10 @@ import azure.cognitiveservices.speech as speechsdk
 from pydub import AudioSegment
 from pydub.utils import which
 
-# Try to set explicit ffmpeg/ffprobe for pydub (helpful if PATH is not set)
 AudioSegment.converter = which("ffmpeg") or os.environ.get("FFMPEG_BINARY")
 AudioSegment.ffprobe = which("ffprobe") or os.environ.get("FFPROBE_BINARY")
 
 if AudioSegment.converter is None or AudioSegment.ffprobe is None:
-    # This will raise at import-time — helpful to fail fast during dev.
     print(
         "WARNING: ffmpeg/ffprobe not found on PATH and FFMPEG_BINARY/FFPROBE_BINARY not set."
         " Install ffmpeg or set env vars. Continue anyway (conversion will fail later)."
@@ -173,7 +171,7 @@ class TranscriptionService:
             speech_config = speechsdk.SpeechConfig(
                 subscription=self.azure_key, region=self.azure_region
             )
-            speech_config.speech_recognition_language = "pl-PL"
+            speech_config.speech_recognition_language = "en-US"
 
             audio_config = speechsdk.audio.AudioConfig(filename=filepath)
             recognizer = speechsdk.SpeechRecognizer(
@@ -241,7 +239,7 @@ class TranscriptionService:
             recognizer.start_continuous_recognition()
 
             # Wait for recognition to complete (with timeout)
-            timeout = 120  # increase timeout for reliability during debugging
+            timeout = 1200  # 20 minutes
             elapsed = 0.0
             while not done and elapsed < timeout:
                 sleep(0.5)
