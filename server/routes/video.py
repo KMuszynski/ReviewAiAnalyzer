@@ -14,9 +14,9 @@ def analyze_video():
     Complete video analysis workflow:
     1. Download YouTube video
     2. Convert to WAV
-    3. Transcribe with Azure
-    4. Analyze sentiment
-    5. Return results
+    3. Transcribe with Azure (REAL LOGIC)
+    4. Analyze sentiment (REAL LOGIC)
+    5. Return full results
     """
     data = request.get_json()
 
@@ -46,7 +46,7 @@ def analyze_video():
             filename=request_id,
         )
 
-        # Wait for transcription (blocking with timeout)
+        # Wait for transcription (blocking with timeout) - KLUCZOWE
         max_wait = 600  # 10 minutes
         start_time = time.time()
 
@@ -70,36 +70,76 @@ def analyze_video():
         # Analyze sentiment
         sentiment_service = SentimentAnalysisService()
         sentiment_results = sentiment_service.analyze_all_features(transcription_text)
+        
+        # --- LOGIKA FORMATOWANIA WYNIKÓW DLA FRONTENDU ---
+        
+        # OBLICZANIE OGÓLNEGO SENTYMENTU (Heurystyka)
+        positive_count = sum(1 for res in sentiment_results.values() if res.get('sentiment') == 'positive')
+        negative_count = sum(1 for res in sentiment_results.values() if res.get('sentiment') == 'negative')
+        total_count = len(sentiment_results)
+        
+        if total_count > 0:
+            if positive_count > negative_count:
+                general_score_value = "Pozytywna"
+                general_score_trend = "up"
+            elif negative_count > positive_count:
+                general_score_value = "Negatywna"
+                general_score_trend = "down"
+            else:
+                general_score_value = "Neutralna"
+                general_score_trend = "neutral"
+        else:
+            general_score_value = "Brak Cech"
+            general_score_trend = "neutral"
+        
+        # 1. Przekształcenie szczegółów sentymentu na format "stats"
+        detailed_stats = [
+            {
+                "label": feature.capitalize(),
+                "value": f"{result['sentiment'].capitalize()} ({int(result['confidence'] * 100)}%)",
+                "trend": 'up' if result['sentiment'] == 'positive' else ('down' if result['sentiment'] == 'negative' else 'neutral'),
+            }
+            for feature, result in sentiment_results.items()
+        ]
 
+        # 2. Statystyki ogólne
+        initial_stats = [
+            {
+                "label": "Ogólna Ocena",
+                "value": general_score_value, 
+                "trend": general_score_trend,
+            },
+            {
+                "label": "Transcription Length",
+                "value": f"{len(transcription_text)} characters",
+                "trend": "neutral",
+            },
+            {
+                "label": "Features Analyzed",
+                "value": len(sentiment_results),
+                "trend": "up",
+            },
+        ]
+        
         # Clean up temporary files
         try:
             for ext in ["mp3", "wav", "txt"]:
-                filepath = os.path.join(static_dir, f"{request_id}.{ext}")
+                filepath = os.path.join(static_dir, f"{request_id}.ext")
                 if os.path.exists(filepath):
                     os.remove(filepath)
         except Exception as cleanup_error:
             print(f"Warning: File cleanup failed: {cleanup_error}")
 
+        # ZWRACANIE PEŁNEGO PAKIETU DANYCH
         return (
             jsonify(
                 {
-                    "transcription": transcription_text,
-                    "sentiment": sentiment_results,
-                    "features": list(sentiment_results.keys()),
+                    # To pole jest używane do wyświetlania fragmentów tekstu w ReviewTable
+                    "sentiment": sentiment_results, 
+                    "fullTranscription": transcription_text, # <--- DODANE
                     "analysisData": {
-                        "title": "Video Analysis Complete",
-                        "stats": [
-                            {
-                                "label": "Transcription Length",
-                                "value": f"{len(transcription_text)} characters",
-                                "trend": "neutral",
-                            },
-                            {
-                                "label": "Features Detected",
-                                "value": len(sentiment_results),
-                                "trend": "up",
-                            },
-                        ],
+                        "title": f"Video Analysis ({request_id[:8]})",
+                        "stats": initial_stats + detailed_stats, # <--- PEŁNE STATYSTYKI SENTYMENTU
                     },
                 }
             ),

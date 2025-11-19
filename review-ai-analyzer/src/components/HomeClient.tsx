@@ -12,6 +12,8 @@ interface AnalysisData {
 		value: string | number
 		trend?: 'up' | 'down' | 'neutral'
 	}[]
+	fullTranscription: string
+	sentimentDetails: any;
 }
 
 export default function HomeClient() {

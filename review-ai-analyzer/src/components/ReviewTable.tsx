@@ -2,6 +2,12 @@
 
 import { useState } from 'react'
 
+interface FeatureDetail {
+	sentiment: string
+	confidence: number
+	relevant_text: string[]
+}
+
 interface AnalysisStats {
 	[key: string]: {
 		title: string
@@ -10,6 +16,8 @@ interface AnalysisStats {
 			value: string | number
 			trend?: 'up' | 'down' | 'neutral'
 		}[]
+		fullTranscription: string
+		sentimentDetails: { [key: string]: FeatureDetail }
 	}
 }
 
@@ -20,6 +28,8 @@ interface AnalysisData {
 		value: string | number
 		trend?: 'up' | 'down' | 'neutral'
 	}[]
+	fullTranscription: string
+	sentimentDetails: { [key: string]: FeatureDetail }
 }
 
 interface ReviewTableProps {
@@ -85,9 +95,11 @@ export default function ReviewTable({ analyses }: ReviewTableProps) {
 
 				{/* FAQ-style accordion */}
 				<div className='space-y-2 '>
-					{analysisOptions.map(option => {
+					{analysisOptions.map((option, index) => {
 						const isOpen = openItems.has(option.value)
 						const data = analysisData[option.value]
+						// PRZYGOTOWANIE DANYCH SENTYMENTU
+						const featureDetails = data ? data.sentimentDetails : {}
 
 						return (
 							<div key={option.value} className='border border-gray-200 rounded-lg'>
@@ -100,24 +112,61 @@ export default function ReviewTable({ analyses }: ReviewTableProps) {
 									</div>
 									<span className={`transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
 								</button>
-								{isOpen && (
+								{isOpen && data && (
 									<div className='px-4 pb-4 border-t border-gray-200'>
-										<div className='pt-3 space-y-2'>
-											{data.stats.map((stat, index) => (
-												<div key={index} className='flex justify-between items-center py-2'>
-													<div className='flex-1'>
-														<p className='text-sm font-medium text-gray-700'>{stat.label}</p>
-													</div>
-													<div className='flex items-center space-x-2'>
-														<span className={`text-sm font-semibold ${getTrendColor(stat.trend)}`}>{stat.value}</span>
-														{stat.trend && (
-															<span className='text-sm' title={`Trend: ${stat.trend}`}>
-																{getTrendIcon(stat.trend)}
-															</span>
+										{/* Sekcja Statystyk/Sentymentu */}
+										<div className='pt-3 space-y-4'>
+											{data.stats?.map((stat, statIndex) => {
+												// Spróbuj dopasować etykietę statystyki do szczegółów sentymentu
+												const featureKey = stat.label.toLowerCase()
+												const detail = featureDetails[featureKey]
+
+												return (
+													<div
+														key={statIndex}
+														className={`p-3 rounded-lg border-l-4 ${
+															stat.trend === 'up'
+																? 'border-green-500 bg-green-50'
+																: stat.trend === 'down'
+																? 'border-red-500 bg-red-50'
+																: 'border-gray-300 bg-gray-50'
+														}`}>
+														<div className='flex justify-between items-center pb-2'>
+															<p className='text-sm font-bold text-gray-800'>{stat.label}</p>
+															<div className='flex items-center space-x-2'>
+																<span className={`text-sm font-semibold ${getTrendColor(stat.trend)}`}>
+																	{stat.value}
+																</span>
+																{stat.trend && (
+																	<span className='text-sm' title={`Trend: ${stat.trend}`}>
+																		{getTrendIcon(stat.trend)}
+																	</span>
+																)}
+															</div>
+														</div>
+
+														{/* WYŚWIETLANIE FRAGMENTÓW TEKSTU */}
+														{detail && detail.relevant_text && detail.relevant_text.length > 0 && (
+															<div className='mt-2 border-t pt-2 border-gray-200'>
+																<p className='text-xs font-medium text-gray-600 mb-1'>Fragmenty Sentymentu:</p>
+																<ul className='list-disc list-inside text-xs text-gray-700 space-y-1 pl-4'>
+																	{detail.relevant_text.map((text, textIndex) => (
+																		<li key={textIndex}>{text}</li>
+																	))}
+																</ul>
+															</div>
 														)}
 													</div>
-												</div>
-											))}
+												)
+											})}
+										</div>
+
+										{/* Sekcja Pełnej Transkrypcji */}
+										<div className='mt-6 pt-4 border-t border-gray-200'>
+											<h4 className='text-md font-semibold text-gray-800 mb-2'>Pełna Transkrypcja Wideo</h4>
+											<p className='text-sm text-gray-600 whitespace-pre-wrap max-h-60 overflow-y-auto p-4 bg-gray-100 rounded-lg shadow-inner'>
+												{data.fullTranscription || 'Transkrypcja niedostępna.'}
+											</p>
 										</div>
 									</div>
 								)}
