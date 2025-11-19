@@ -24,148 +24,64 @@ export default function UrlProcessor({ onAnalysisComplete }: UrlProcessorProps) 
 	const [videoPath, setVideoPath] = useState<string | null>(null)
 
 	const processUrl = async (url: string) => {
-		await new Promise(resolve => setTimeout(resolve, 2000))
+    // Call your backend endpoint
+    const response = await fetch('http://localhost:5000/api/video/analyze', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ url }),
+		});
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
 
-		const isValidUrl = url.startsWith('http://') || url.startsWith('https://')
+    const data = await response.json();
 
-		if (!isValidUrl) {
-			throw new Error('Please enter a valid URL starting with http:// or https://')
-		}
+    // ✅ Log results to console as requested
+    console.log('=== Video Analysis Results ===');
+    console.log('Transcription:', data.transcription);
+    console.log('Sentiment Analysis:', data.sentiment);
+    console.log('Features:', data.features);
 
-		if (url.includes('youtube.com') || url.includes('youtu.be')) {
-			return {
-				videoPath: '/iphone-review.mp4',
-				type: 'YouTube Video',
-				title: 'iPhone Review Video',
-				description: 'Video analysis completed successfully',
-				analysisData: {
-					title: 'iPhone 15 Pro Review Analysis',
-					stats: [
-						{
-							label: 'Overall Sentiment',
-							value: 'Positive',
-							trend: 'up' as const,
-						},
-						{ label: 'Average Rating', value: '4.3/5', trend: 'up' as const },
-						{
-							label: 'Key Positives',
-							value: 'Camera, Performance',
-							trend: 'up' as const,
-						},
-						{
-							label: 'Key Negatives',
-							value: 'Price, Battery',
-							trend: 'down' as const,
-						},
-						{ label: 'Viewer Engagement', value: 'High', trend: 'up' as const },
-					],
-				},
-			}
-		} else if (url.includes('amazon.com') || url.includes('amazon.')) {
-			return {
-				videoPath: '/iphone-review.mp4',
-				type: 'Amazon Product Review',
-				title: 'Product Review Video',
-				description: 'Video analysis completed successfully',
-				analysisData: {
-					title: 'Amazon Product Review Analysis',
-					stats: [
-						{ label: 'Purchase Intent', value: '78%', trend: 'up' as const },
-						{
-							label: 'Product Satisfaction',
-							value: '4.1/5',
-							trend: 'up' as const,
-						},
-						{
-							label: 'Price Perception',
-							value: 'Fair',
-							trend: 'neutral' as const,
-						},
-						{ label: 'Quality Rating', value: '4.2/5', trend: 'up' as const },
-						{
-							label: 'Recommendation Rate',
-							value: '85%',
-							trend: 'up' as const,
-						},
-					],
-				},
-			}
-		} else if (url.includes('google.com/maps') || url.includes('maps.google')) {
-			return {
-				videoPath: '/iphone-review.mp4',
-				type: 'Location Review',
-				title: 'Location Review Video',
-				description: 'Video analysis completed successfully',
-				analysisData: {
-					title: 'Location Review Analysis',
-					stats: [
-						{ label: 'Location Rating', value: '4.5/5', trend: 'up' as const },
-						{
-							label: 'Service Quality',
-							value: 'Excellent',
-							trend: 'up' as const,
-						},
-						{ label: 'Atmosphere', value: 'Great', trend: 'up' as const },
-						{
-							label: 'Value for Money',
-							value: 'Good',
-							trend: 'neutral' as const,
-						},
-						{ label: 'Would Return', value: '92%', trend: 'up' as const },
-					],
-				},
-			}
-		} else {
-			return {
-				videoPath: '/iphone-review.mp4',
-				type: 'Generic Video',
-				title: 'Video Analysis',
-				description: 'Video analysis completed successfully',
-				analysisData: {
-					title: 'General Video Analysis',
-					stats: [
-						{ label: 'Content Quality', value: 'Good', trend: 'up' as const },
-						{
-							label: 'Engagement Level',
-							value: 'Medium',
-							trend: 'neutral' as const,
-						},
-						{ label: 'Clarity Score', value: '7.5/10', trend: 'up' as const },
-						{ label: 'Relevance', value: 'High', trend: 'up' as const },
-						{ label: 'Overall Score', value: '8.2/10', trend: 'up' as const },
-					],
-				},
-			}
-		}
-	}
+    // Return data in the format your UI expects
+    return {
+        videoPath: '/iphone-review.mp4', // Make dynamic if needed
+        type: 'YouTube Video',
+        title: 'Video Analysis',
+        description: 'Video analysis completed successfully',
+        analysisData: data.analysisData,
+    };
+	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault()
+    e.preventDefault();
 
-		if (!url.trim()) {
-			setError('Please enter a URL')
-			return
-		}
+    if (!url.trim()) {
+        setError('Please enter a URL');
+        return;
+    }
 
-		setIsProcessing(true)
-		setError(null)
-		setResult(null)
+    setIsProcessing(true);
+    setError(null);
+    setResult(null);
 
-		try {
-			const analysisResult = await processUrl(url.trim())
-			setResult(JSON.stringify(analysisResult, null, 2))
-			setVideoPath(analysisResult.videoPath)
-			setShowVideo(true)
+    try {
+        const analysisResult = await processUrl(url.trim());
+        setResult(JSON.stringify(analysisResult, null, 2));
+        setVideoPath(analysisResult.videoPath);
+        setShowVideo(true);
 
-			if (analysisResult.analysisData) {
-				onAnalysisComplete(analysisResult.analysisData)
-			}
-		} catch (err) {
-			setError(err instanceof Error ? err.message : 'An error occurred while processing the URL')
-		} finally {
-			setIsProcessing(false)
-		}
-	}
+        if (analysisResult.analysisData) {
+            onAnalysisComplete(analysisResult.analysisData);
+        }
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+        setError(errorMessage);
+        console.error('Analysis error:', err); // Log full error to console
+    } finally {
+        setIsProcessing(false);
+    }
+	};
 
 	const handleAnalyzeDifferent = () => {
 		setShowVideo(false)
@@ -210,7 +126,7 @@ export default function UrlProcessor({ onAnalysisComplete }: UrlProcessorProps) 
 					<label htmlFor='url' className='block text-sm font-medium text-gray-700 mb-2'>
 						            Enter video URL to analyze:        
 					</label>
-					 
+					<span className='text-xs text-black'>https://www.youtube.com/watch?v=rY42Yg2gHa8</span>
 					<input
 						type='url'
 						id='url'
