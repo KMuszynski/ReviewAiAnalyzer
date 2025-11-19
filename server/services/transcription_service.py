@@ -24,19 +24,11 @@ if AudioSegment.converter is None or AudioSegment.ffprobe is None:
 class TranscriptionService:
     """Service for handling audio transcription from YouTube."""
 
-    _instance = None
-    _lock = Lock()
-
-    def __new__(cls, *args, **kwargs):
-        """Singleton pattern to ensure only one transcription service exists."""
-        if not cls._instance:
-            with cls._lock:
-                if not cls._instance:
-                    cls._instance = super().__new__(cls)
-        return cls._instance
-
-    def __init__(self, azure_key, azure_region, static_dir, youtube_url=None):
-        # Only initialize once
+    def __init__(
+        self, azure_key, azure_region, static_dir, youtube_url=None, filename=None
+    ):
+        """Initialize transcription service."""
+        # Keep this check to prevent re-initialization
         if hasattr(self, "_initialized"):
             return
 
@@ -47,22 +39,24 @@ class TranscriptionService:
             youtube_url or "https://www.youtube.com/shorts/cJUVXUF7GNg?feature=share"
         )
 
-        # File paths
-        self.output_path = os.path.join(static_dir, "audio.%(ext)s")
-        self.audio_mp3 = os.path.join(static_dir, "audio.mp3")
-        self.audio_wav = os.path.join(static_dir, "audio.wav")
-        self.transcript_file = os.path.join(static_dir, "audio.txt")
+        # Use custom filename prefix to avoid conflicts
+        if filename is None:
+            filename = "audio"
+
+        self.output_path = os.path.join(static_dir, f"{filename}.%(ext)s")
+        self.audio_mp3 = os.path.join(static_dir, f"{filename}.mp3")
+        self.audio_wav = os.path.join(static_dir, f"{filename}.wav")
+        self.transcript_file = os.path.join(static_dir, f"{filename}.txt")
 
         self._transcription_done = False
         self._transcription_started = False
         self._initialized = True
 
-        print(f"TranscriptionService initialized with:")
-        print(f"  Azure Key: {'SET' if azure_key else 'NOT SET'}")
-        print(f"  Azure Region: {azure_region}")
-        print(f"  Static dir: {static_dir}")
-        print(f"  ffmpeg (pydub): {AudioSegment.converter}")
-        print(f"  ffprobe (pydub): {AudioSegment.ffprobe}")
+        print(f"TranscriptionService initialized:")
+        print(f"  URL: {self.youtube_url}")
+        print(f"  Filename: {filename}")
+        print(f"  Azure region: {azure_region}")
+        print(f"  ffmpeg: {AudioSegment.converter}")
 
         # Start background transcription
         self._start_background_process()

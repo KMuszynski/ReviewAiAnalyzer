@@ -1,14 +1,18 @@
 import os
 from flask import Flask
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 load_dotenv()
 
-from routes.transcription import transcription_bp
-from routes.sentiment import sentiment_bp
 from routes.main import main_bp
+from routes.transcription import transcription_bp
+from routes.video import video_bp
+from routes.sentiment import sentiment_bp
 
 app = Flask(__name__)
+
+CORS(app, origins=["http://localhost:3000"])
 
 app.config["AZURE_SPEECH_KEY"] = os.getenv("AZURE_SPEECH_KEY")
 app.config["AZURE_SPEECH_REGION"] = os.getenv("AZURE_SPEECH_REGION")
@@ -19,6 +23,7 @@ os.makedirs(app.config["STATIC_DIR"], exist_ok=True)
 
 app.register_blueprint(main_bp)
 app.register_blueprint(transcription_bp, url_prefix="/api/transcription")
+app.register_blueprint(video_bp, url_prefix="/api/video")
 app.register_blueprint(sentiment_bp, url_prefix="/api/sentiment")
 
 
