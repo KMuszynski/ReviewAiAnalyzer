@@ -271,7 +271,7 @@ class TranscriptionService:
                 print("This could mean:")
                 print("  - Audio file is silent or corrupted")
                 print("  - Azure Speech API issue")
-                print("  - Wrong language setting (currently: pl-PL)")
+                print("  - Wrong language setting (currently: en-UA)")
 
                 # Write empty file to indicate completion
                 with open(self.transcript_file, "w", encoding="utf-8") as f:
@@ -303,7 +303,7 @@ class TranscriptionService:
             speech_config = speechsdk.SpeechConfig(
                 subscription=self.azure_key, region=self.azure_region
             )
-            speech_config.speech_recognition_language = "pl-PL"
+            speech_config.speech_recognition_language = "en-US"
             audio_config = speechsdk.audio.AudioConfig(filename=filepath)
             recognizer = speechsdk.SpeechRecognizer(
                 speech_config=speech_config, audio_config=audio_config
