@@ -39,7 +39,7 @@ interface ReviewTableProps {
 export default function ReviewTable({ analyses }: ReviewTableProps) {
 	const [openItems, setOpenItems] = useState<Set<string>>(new Set())
 
-	// Create analysis options from the provided analyses
+	// Create analysis options from the provided analyses (already sorted newest first from database)
 	const analysisOptions = analyses.map((analysis, index) => ({
 		value: `analysis-${index}`,
 		label: analysis.title,
@@ -99,7 +99,7 @@ export default function ReviewTable({ analyses }: ReviewTableProps) {
 						const isOpen = openItems.has(option.value)
 						const data = analysisData[option.value]
 						// PRZYGOTOWANIE DANYCH SENTYMENTU
-						const featureDetails = data ? data.sentimentDetails : {}
+						const featureDetails = data?.sentimentDetails ?? {}
 
 						return (
 							<div key={option.value} className='border border-gray-200 rounded-lg'>
@@ -116,7 +116,7 @@ export default function ReviewTable({ analyses }: ReviewTableProps) {
 									<div className='px-4 pb-4 border-t border-gray-200'>
 										{/* Sekcja Statystyk/Sentymentu */}
 										<div className='pt-3 space-y-4'>
-											{data.stats?.map((stat, statIndex) => {
+											{[...data.stats].reverse().map((stat, statIndex) => {
 												// Spróbuj dopasować etykietę statystyki do szczegółów sentymentu
 												const featureKey = stat.label.toLowerCase()
 												const detail = featureDetails[featureKey]

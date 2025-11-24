@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import UrlProcessor from '@/components/UrlProcessor'
 import ReviewTable from '@/components/ReviewTable'
 import VideoUpload from './VideoUpload'
@@ -12,12 +12,21 @@ interface AnalysisData {
 		value: string | number
 		trend?: 'up' | 'down' | 'neutral'
 	}[]
-	fullTranscription: string
-	sentimentDetails: any;
+	fullTranscription?: string
+	sentimentDetails?: any
 }
 
-export default function HomeClient() {
-	const [analyses, setAnalyses] = useState<AnalysisData[]>([])
+interface HomeClientProps {
+	userId?: string | null
+	initialAnalyses?: AnalysisData[]
+}
+
+export default function HomeClient({ userId, initialAnalyses = [] }: HomeClientProps) {
+	const [analyses, setAnalyses] = useState<AnalysisData[]>(initialAnalyses)
+
+	useEffect(() => {
+		setAnalyses(initialAnalyses)
+	}, [initialAnalyses])
 
 	const handleAnalysisComplete = (analysisData: AnalysisData) => {
 		setAnalyses(prev => [...prev, analysisData])
@@ -28,7 +37,7 @@ export default function HomeClient() {
 			     
 			<div className='h-full flex flex-col items-center justify-start w-full md:w-1/2 p-6 md:p-10'>
 				        <h2 className='text-2xl font-bold text-gray-800 mb-8'>Video Input & Processing</h2>
-				        <UrlProcessor onAnalysisComplete={handleAnalysisComplete} />       
+				        <UrlProcessor onAnalysisComplete={handleAnalysisComplete} userId={userId} />       
 				<div className='w-full h-px bg-gray-300 my-8'></div>
 				        <VideoUpload onAnalysisComplete={handleAnalysisComplete} />     
 			</div>
