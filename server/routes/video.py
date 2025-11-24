@@ -2,10 +2,88 @@ from flask import Blueprint, request, jsonify, current_app
 import os
 import uuid
 import time
+import re
+from urllib.parse import urlparse, parse_qs
 from services.transcription_service import TranscriptionService
 from services.sentiment_service import SentimentAnalysisService
 
 video_bp = Blueprint("video", __name__)
+
+
+def _extract_phone_name(transcription: str) -> str:
+    """Extract phone model name from transcription."""
+    # Common phone model patterns
+    phone_patterns = [
+        r'\b(iPhone\s+\d+[a-z]*(?:\s+(?:Pro|Max|Plus|Mini))?)\b',
+        r'\b(Samsung\s+Galaxy\s+[A-Z]\d+[a-z]*(?:\s+(?:Ultra|Plus|Note))?)\b',
+        r'\b(Google\s+Pixel\s+\d+[a-z]*(?:\s+(?:Pro|XL))?)\b',
+        r'\b(OnePlus\s+\d+[a-z]*(?:\s+(?:Pro|T))?)\b',
+        r'\b(Xiaomi\s+(?:Mi|Redmi|POCO)\s+[A-Z0-9]+[a-z]*)\b',
+        r'\b(Huawei\s+(?:P|Mate|Nova)\s+[A-Z0-9]+[a-z]*)\b',
+        r'\b(Oppo\s+(?:Find|Reno)\s+[A-Z0-9]+[a-z]*)\b',
+        r'\b(Vivo\s+[A-Z0-9]+[a-z]*)\b',
+        r'\b(Realme\s+[A-Z0-9]+[a-z]*)\b',
+        r'\b(Motorola\s+(?:Edge|Razr|Moto)\s+[A-Z0-9]+[a-z]*)\b',
+        r'\b(Nothing\s+Phone\s+\d+)\b',
+    ]
+    
+    import re
+    transcription_lower = transcription.lower()
+    
+    # Try to find phone model in transcription
+    for pattern in phone_patterns:
+        match = re.search(pattern, transcription, re.IGNORECASE)
+        if match:
+            return match.group(1)
+    
+    # Fallback: look for common phone-related keywords
+    phone_keywords = ['iphone', 'samsung', 'galaxy', 'pixel', 'oneplus', 'xiaomi', 'huawei']
+    for keyword in phone_keywords:
+        if keyword in transcription_lower:
+            # Try to extract more context
+            keyword_index = transcription_lower.find(keyword)
+            context = transcription[max(0, keyword_index - 20):keyword_index + 40]
+            # Look for numbers or model names near the keyword
+            model_match = re.search(rf'{keyword}\s+([A-Z0-9]+[a-z]*)', context, re.IGNORECASE)
+            if model_match:
+                return f"{keyword.capitalize()} {model_match.group(1)}"
+            return keyword.capitalize()
+    
+    return "Unknown Phone"
+
+
+def _generate_embed_url(url: str, platform: str) -> str:
+    """Generate embed URL for different video platforms."""
+    if platform == "youtube":
+        # Extract video ID from YouTube URL
+        video_id = None
+        if "youtube.com/watch" in url:
+            parsed = urlparse(url)
+            video_id = parse_qs(parsed.query).get("v", [None])[0]
+        elif "youtu.be/" in url:
+            video_id = url.split("youtu.be/")[1].split("?")[0]
+        elif "youtube.com/embed/" in url:
+            video_id = url.split("youtube.com/embed/")[1].split("?")[0]
+        
+        if video_id:
+            return f"https://www.youtube.com/embed/{video_id}"
+        return url  # Fallback to original URL
+    
+    elif platform == "vimeo":
+        # Extract video ID from Vimeo URL
+        video_id_match = re.search(r"vimeo\.com/(\d+)", url)
+        if video_id_match:
+            video_id = video_id_match.group(1)
+            return f"https://player.vimeo.com/video/{video_id}"
+        return url  # Fallback to original URL
+    
+    elif platform == "tiktok":
+        # TikTok doesn't have a simple embed URL, return original
+        # Note: TikTok embeds require special handling and may not work in iframes
+        return url
+    
+    # Fallback to original URL for unsupported platforms
+    return url
 
 
 @video_bp.route("/analyze", methods=["POST"])
@@ -27,9 +105,27 @@ def analyze_video():
     if not url or not (url.startswith("http://") or url.startswith("https://")):
         return jsonify({"error": "Invalid URL format"}), 400
 
-    # Validate YouTube URL
-    if not any(domain in url for domain in ["youtube.com", "youtu.be"]):
-        return jsonify({"error": "Only YouTube URLs are currently supported"}), 400
+    # Detect supported video platform
+    supported_platforms = {
+        "youtube.com": "youtube",
+        "youtu.be": "youtube",
+        "vimeo.com": "vimeo",
+        "tiktok.com": "tiktok",
+        "vm.tiktok.com": "tiktok",
+    }
+    
+    platform = None
+    for domain, platform_name in supported_platforms.items():
+        if domain in url:
+            platform = platform_name
+            break
+    
+    if not platform:
+        return jsonify({
+            "error": "Unsupported video platform",
+            "supported_platforms": list(set(supported_platforms.values())),
+            "message": "Currently supported: YouTube, Vimeo, TikTok"
+        }), 400
 
     # Generate unique ID to avoid file conflicts
     request_id = str(uuid.uuid4())
@@ -42,9 +138,13 @@ def analyze_video():
             azure_key=current_app.config["AZURE_SPEECH_KEY"],
             azure_region=current_app.config["AZURE_SPEECH_REGION"],
             static_dir=static_dir,
-            youtube_url=url,
+            youtube_url=url,  # yt-dlp supports multiple platforms, parameter name kept for compatibility
             filename=request_id,
+            platform=platform,
         )
+        
+        # Generate embed URL based on platform
+        embed_url = _generate_embed_url(url, platform)
 
         # Wait for transcription (blocking with timeout) - KLUCZOWE
         max_wait = 600  # 10 minutes
@@ -70,6 +170,9 @@ def analyze_video():
         # Analyze sentiment
         sentiment_service = SentimentAnalysisService()
         sentiment_results = sentiment_service.analyze_all_features(transcription_text)
+        
+        # Extract phone name from transcription
+        phone_name = _extract_phone_name(transcription_text)
         
         # --- LOGIKA FORMATOWANIA WYNIKÓW DLA FRONTENDU ---
         
@@ -137,8 +240,11 @@ def analyze_video():
                     # To pole jest używane do wyświetlania fragmentów tekstu w ReviewTable
                     "sentiment": sentiment_results, 
                     "fullTranscription": transcription_text, # <--- DODANE
+                    "embedUrl": embed_url,  # Embed URL for the video player
+                    "platform": platform,  # Platform name (youtube, vimeo, tiktok)
+                    "phoneName": phone_name,  # Extracted phone model name
                     "analysisData": {
-                        "title": f"Video Analysis ({request_id[:8]})",
+                        "title": f"Video Analysis - {phone_name} ({request_id[:8]})",
                         "stats": initial_stats + detailed_stats, # <--- PEŁNE STATYSTYKI SENTYMENTU
                     },
                 }

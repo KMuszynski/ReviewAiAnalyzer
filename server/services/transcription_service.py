@@ -22,10 +22,16 @@ if AudioSegment.converter is None or AudioSegment.ffprobe is None:
 
 
 class TranscriptionService:
-    """Service for handling audio transcription from YouTube."""
+    """Service for handling audio transcription from video platforms."""
 
     def __init__(
-        self, azure_key, azure_region, static_dir, youtube_url=None, filename=None
+        self,
+        azure_key,
+        azure_region,
+        static_dir,
+        youtube_url=None,
+        filename=None,
+        platform=None,
     ):
         """Initialize transcription service."""
         # Keep this check to prevent re-initialization
@@ -38,6 +44,7 @@ class TranscriptionService:
         self.youtube_url = (
             youtube_url or "https://www.youtube.com/shorts/cJUVXUF7GNg?feature=share"
         )
+        self.platform = platform or "youtube"
 
         # Use custom filename prefix to avoid conflicts
         if filename is None:
@@ -86,23 +93,28 @@ class TranscriptionService:
             traceback.print_exc()
 
     def _download_and_prepare_audio(self):
-        """Download audio from YouTube and convert to WAV 16kHz mono."""
+        """Download audio from video platform and convert to WAV 16kHz mono."""
         print("=== Download and prepare audio ===")
 
         # Check if MP3 already exists
         if os.path.exists(self.audio_mp3):
             print(f"✓ Audio file already exists: {self.audio_mp3}")
         else:
+            # TikTok and some other platforms require richer formats.
+            download_format = (
+                "bestaudio/best" if self.platform in {"tiktok", "vimeo"} else "worstaudio"
+            )
             ydl_opts = {
-                "format": "worstaudio",
+                "format": download_format,
                 "outtmpl": self.output_path,
                 "postprocessors": [
                     {
                         "key": "FFmpegExtractAudio",
                         "preferredcodec": "mp3",
-                        "preferredquality": "8",
+                        "preferredquality": "192",
                     },
                 ],
+                "noplaylist": True,
                 "quiet": False,
                 "no_warnings": False,
             }
