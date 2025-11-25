@@ -38,7 +38,7 @@ export default function UrlProcessor({ onAnalysisComplete, userId }: UrlProcesso
 			console.warn('Cannot save analysis: User not signed in')
 			return
 		}
-
+		// try to save the analysis to the database
 		try {
 			const { data, error: insertError } = await supabase.from('sentiments').insert({
 				user_id: userId,
