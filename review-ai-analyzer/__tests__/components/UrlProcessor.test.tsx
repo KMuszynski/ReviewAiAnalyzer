@@ -208,15 +208,23 @@ describe('UrlProcessor Component', () => {
 		render(<UrlProcessor onAnalysisComplete={mockOnAnalysisComplete} userId="user-123" />)
 
 		const submitButton = screen.getByRole('button', { name: /analyze video/i })
+		const input = screen.getByLabelText(/enter video url/i)
 
-		// Try to submit empty form
-		await user.click(submitButton)
+		// Przycisk powinien być disabled gdy URL jest pusty
+		expect(submitButton).toBeDisabled()
 
-		await waitFor(() => {
-			expect(screen.getByText(/please enter a url/i)).toBeInTheDocument()
-		})
+		// Wpisz URL
+		await user.type(input, 'https://youtube.com/watch?v=test')
+
+		// Teraz przycisk powinien być enabled
+		expect(submitButton).not.toBeDisabled()
+
+		// Wyczyść URL
+		await user.clear(input)
+
+		// Przycisk znowu disabled
+		expect(submitButton).toBeDisabled()
 
 		expect(global.fetch).not.toHaveBeenCalled()
 	})
 })
-
