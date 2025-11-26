@@ -6,3 +6,4 @@ pydub==0.25.1
 python-dotenv==1.0.0
 azure-cognitiveservices-speech
 flask-cors
+audioop-lts  # Required for Python 3.13+ compatibility with pydub
